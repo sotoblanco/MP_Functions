@@ -5,7 +5,7 @@ setup(
     version='0.0.1',
     author="Pastor Soto",
     author_email="sotoblanco263542@gmail.com",
-    description='Create market profile pictures',
+    description='Create market profile features',
     py_modules=["MP_Functions"],
     package_dir={'':'libname'},
 
