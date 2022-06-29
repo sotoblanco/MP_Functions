@@ -176,3 +176,60 @@ def moving_MP(live_low, live_high):
 
 
     return list_df
+
+
+
+def mp_chart(low_list_va, high_list_va,current_day, day_night="day", step=4, time_location="07:30", va_color="red", poc_color ="green"):
+  '''
+  low: list of low values
+  high: list of high values
+  day_night: what MP are you displaying
+  step of the market profile
+  current_day: current day to create the chart
+  time_location: MP location
+
+  return a figure data to place inside plotly chart
+  '''
+  if day_night == "day":
+    c_tpo = 'ABCDEFGHIJKLMN'
+  else:
+    c_tpo = "ABCDEFGHIJKLMNOPQRSTUVWXabcdefghijk"
+
+
+  import MP_Functions as mp
+  rec = {}
+  mp_ind = np.arange(max(high_list_va), min(low_list_va), -step) # from high to low with 4 points step
+  for val in mp_ind:
+    rec[str(val)] = ''
+    for name, high, low in zip(list(c_tpo), high_list_va, low_list_va):
+      if val<=high and val>=low:
+        rec[str(val)] = rec[str(val)] + name
+
+  rec = pd.Series(rec)
+  rec.str.len()
+  recs = pd.DataFrame([rec.index, rec]).T
+  recs.columns = columns=['price', 'tpo']
+  recs['price'] = recs['price'].astype('float')
+  recs['time'] = f'{str(current_day)} {time_location}' # set all to 6:30 so it starts at the same hour visually purpose
+  recs['time'] = pd.to_datetime(recs['time'])
+
+  mp_feat = mp.MP_features(low_list_va, high_list_va)
+
+  vah, val, poc = mp_feat['VAH_'][0], mp_feat['VAL_'][0], mp_feat['POC_'][0]
+  recs['color'] = np.where((recs['price']<=vah)&(recs['price']>=val), va_color, "white") # color inside the value areas
+  arr = np.asarray(recs['price'])
+  i = (np.abs(arr - poc)).argmin()
+  poc_val = arr[i]
+  recs['color'] = np.where(recs['price']==poc_val, poc_color, recs['color']) # get POC
+  master_recs = pd.DataFrame()
+  master_recs = master_recs.append(recs)
+
+  master_recs['Point'] = np.where(master_recs['color']==poc_color, master_recs['price'].astype('str')+' (POC)',
+                                np.where(master_recs['color']==va_color, master_recs['price'].astype('str')+' (Value area)',
+                                master_recs['price']))
+
+  fig = go.Scatter(x=master_recs['time'], y=master_recs['price'], mode="text", text=master_recs['tpo'], textfont=dict(family="verdana", size=5, color=master_recs['color']),
+                         textposition='top right', hovertext=master_recs['Point'], name='Market Profile Night')
+
+
+  return fig
